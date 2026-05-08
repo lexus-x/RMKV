@@ -1,55 +1,67 @@
-# KAN-Flow-X: Paper Outline
+# KAN-Flow-X: Paper Outline (Honest Framing)
 
-## Title
-"KAN-Flow-X: Task-Routed Hierarchical Flow Matching with Semantic Foresight for Robotic Manipulation"
+## Title Options
 
-## Abstract
-We present KAN-Flow-X, a novel Vision-Language-Action model that combines Kolmogorov-Arnold Network (KAN) splines with semantic foresight, task-routed experts, and hierarchical consistency flow matching for multi-task robotic manipulation. Built on the KAN-We-Flow architecture, KAN-Flow-X introduces four key innovations: (1) a lightweight KAN-based foresight module that predicts future visual states in DINOv2 feature space at 100× lower cost than existing approaches; (2) task-conditional spline gating that selectively activates KAN basis functions per task, providing finer-grained specialization than mixture-of-experts routing; (3) hierarchical coarse-to-fine consistency flow matching with adaptive gating that skips refinement for easy tasks; and (4) per-dimension selective action refinement guided by flow velocity confidence. On MetaWorld MT-50, KAN-Flow-X achieves ~87% average success rate, surpassing the current SOTA OFlow (85.6%) while using 18× fewer parameters.
+**Option A (if results improve):**
+"KAN-Flow-X: Task-Routed Hierarchical Flow Matching for Multi-Task Robotic Manipulation"
+
+**Option B (if results stay modest):**
+"Exploring KAN-Based Hierarchical Flow Matching for Multi-Task Manipulation: Architecture Design and Ablation Studies"
+
+**Option C (if negative result):**
+"What Helps and What Doesn't: Ablating KAN-Based Flow Matching Components for MetaWorld MT-50"
+
+## Abstract (draft — adjust based on actual results)
+
+We explore whether combining Kolmogorov-Arnold Network (KAN) splines with hierarchical consistency flow matching, task-routed experts, and semantic foresight can improve multi-task robotic manipulation. Built on the KAN-We-Flow architecture, we introduce [components] and evaluate on MetaWorld MT-50. Our ablation studies isolate the contribution of each component, revealing [findings TBD]. The full architecture achieves [X]% on MT-50 with [Y]M trainable parameters. [Conclusions TBD based on ablation results.]
 
 ## 1. Introduction
-- Problem: Multi-task VLA needs task specialization + foresight
-- Gap: OFlow uses heavy DiT, no task routing; KAN-We-Flow has no foresight
-- Contributions: 4 novel components + SOTA results
+- Multi-task manipulation is hard; current methods either lack task specialization or are expensive
+- KAN-We-Flow showed KAN+RWKV+flow matching works; we explore extensions
+- We propose 4 components and ablate each one
+- [Frame based on actual results]
 
 ## 2. Related Work
-- 2.1 VLA Models (RT-2, OpenVLA, Octo, SmolVLA, π₀)
-- 2.2 Flow Matching for Robotics
-- 2.3 KAN and RWKV for Robotics
-- 2.4 Multi-Task Learning (MoE, PCGrad)
-- 2.5 Visual Foresight
+- [CITATION NEEDED for every paper mentioned]
+- VLA models, flow matching, KAN, multi-task learning, visual foresight
+- **Must verify every paper title, venue, year, and result before submission**
 
 ## 3. Method
-- 3.1 Overview (architecture diagram)
-- 3.2 Observation Encoder (DINOv2 + 3D + proprio)
-- 3.3 Semantic Foresight Module (KAN dynamics, disentangled)
-- 3.4 Task-Conditioned GroupKAN (16+2 experts, language routing)
-- 3.5 Hierarchical Consistency Flow Matching (coarse-to-fine, adaptive)
-- 3.6 Per-Dimension Action Refinement
-- 3.7 Multi-Task Training Strategy (PCGrad, adaptive sampling, V2 rewards)
+- 3.1 Observation encoding
+- 3.2 Semantic foresight (if implemented)
+- 3.3 Task-conditioned GroupKAN (if implemented)
+- 3.4 Hierarchical flow matching (if implemented)
+- 3.5 Per-dimension refinement (if implemented)
 
 ## 4. Experiments
-- 4.1 Setup (MetaWorld MT-50, Meta-World+, 10 seeds, 50 episodes/task)
-- 4.2 Main Results (Table 1: IQM + 95% CI)
-- 4.3 Ablation Studies (4 ablations, one per component)
-- 4.4 Per-Task Analysis (heatmap, failure cases)
-- 4.5 Efficiency Analysis (params, speed, compute)
-- 4.6 Generalization (LIBERO)
+- 4.1 Setup (MetaWorld MT-50, Meta-World+, evaluation protocol)
+- 4.2 Baseline results (current KAN-We-Flow: ~26-30% MT-50)
+- 4.3 Ablation studies (each component added/removed)
+- 4.4 Per-task analysis
+- 4.5 Efficiency analysis
 
 ## 5. Analysis
-- 5.1 Expert Specialization Visualization (t-SNE)
-- 5.2 Foresight Quality vs Success Rate
-- 5.3 Hierarchical vs Single-Stage
-- 5.4 Failure Cases
+- Which components help? Which hurt? Which are neutral?
+- What interactions exist between components?
+- Where does the model fail and why?
 
 ## 6. Conclusion
-- SOTA on MetaWorld MT-50
-- 4 novel components, each measurable
-- 18× lighter than OFlow
-- Future: real-world transfer, larger task sets
+- [Depends entirely on results]
+- Honest assessment of what worked and what didn't
+- Recommendations for future work
 
-## Appendix
-- A: Hyperparameter tables
-- B: Per-task success rates
-- C: Additional ablations
-- D: Training curves
-- E: Computational details
+## What Makes This Publishable
+
+**Workshop paper (CoRL, ICRA workshops)**:
+- Clean ablation studies with proper statistical rigor
+- Honest reporting of what works and what doesn't
+- Engineering contribution of combining these techniques
+
+**Full conference paper (ICRA, IROS)**:
+- Needs 70%+ MT-50 to be competitive
+- Or needs surprising/valuable ablation findings
+- Or needs significant efficiency improvement over baselines
+
+**Negative result paper (NeurIPS Datasets & Benchmarks)**:
+- Valuable if ablations reveal clear lessons about what helps in multi-task flow matching
+- "We tried X, Y, Z and found that only X helps because..."

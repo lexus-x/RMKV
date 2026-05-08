@@ -1,126 +1,65 @@
-# KAN-Flow-X: Novelty Claims & Ablation Plan
+# KAN-Flow-X: Novelty Assessment (Honest)
 
-## Four Novel Components
+## Four Proposed Components
 
 ### 1. Task-Conditioned Spline Gating
 
-**What**: MoE routes to different expert networks. We gate KAN spline basis functions — a finer-grained mechanism. Language embedding produces a per-channel gate that controls which spline basis functions are active.
+**Proposal**: Gate KAN spline basis functions per-task via language embedding, instead of routing to separate expert networks.
 
-**Why it's novel**:
-- MoE-ACT (2026) routes to separate expert networks
-- GST-VLA (2026) uses MoE FFN sublayers
-- Nobody has done task-conditional KAN basis gating
-- Spline gating is more parameter-efficient than full expert routing
+**Honest assessment**: This is FiLM-on-KAN. Making spline coefficients task-conditional is mechanically straightforward. Probably technically first (nobody has published "task-conditional KAN basis gating"), but the novelty bar is low. Reviewers at top venues would call this incremental.
 
-**Expected ablation impact**: -2-3% overall, biggest on medium/hard tasks
+**What we need to show**: Does it actually outperform standard FiLM or MoE routing? If not, it's not worth claiming.
 
-**Comparison to alternatives**:
-| Mechanism | Params | Granularity | Novelty |
-|---|---|---|---|
-| MoE routing (MoE-ACT) | O(E×N) | Expert-level | Existing |
-| FiLM modulation | O(C) | Channel-level | Existing |
-| Task ID embedding | O(T×C) | Task-level | Existing |
-| **Spline gating (ours)** | O(C + B) | Basis-level | **Novel** |
+**Status**: Not implemented. TBD via experiment.
 
 ### 2. KAN-Based Semantic Foresight
 
-**What**: Predict future DINOv2 features via lightweight KAN dynamics model. DreamVLA-style disentangled prediction (dynamic/spatial/semantic) with spline-based activations.
+**Proposal**: Predict future DINOv2 features via lightweight KAN dynamics model instead of heavy DiT.
 
-**Why it's novel**:
-- OFlow uses 200M DiT for foresight — heavy
-- DINO-WM uses MLP dynamics model — no KAN
-- DreamVLA uses disentangled prediction — but with transformers
-- We combine: KAN splines + disentangled prediction in DINOv2 space
-- 100× lighter than OFlow's approach
+**Honest assessment**: Compositional novelty — taking DINO-WM (feature prediction) + DreamVLA (disentangled heads) + swapping MLP for KAN. "First to combine A+B+C in domain D" is the lowest bar of novelty. The KAN swap specifically needs to demonstrate concrete improvement over MLP.
 
-**Expected ablation impact**: -3-4% overall, biggest on hard/very-hard tasks
+**What we need to show**: (a) Foresight actually helps over no foresight, (b) KAN foresight outperforms MLP foresight, (c) disentangled heads outperformed single head.
+
+**Status**: Not implemented. TBD via experiment.
 
 ### 3. Hierarchical Coarse-to-Fine Flow Matching
 
-**What**: Two-stage flow matching — Stage 1 (K=1, coarse) generates rough plan, Stage 2 (K=2, fine) refines. Adaptive gate skips Stage 2 for easy tasks.
+**Proposal**: Two-stage flow (K=1 coarse + K=2 fine) with adaptive gating.
 
-**Why it's novel**:
-- Libra-VLA (Apr 2026) does coarse-to-fine with autoregressive decoding
-- All existing flow-matching VLAs use single-stage flow
-- Hierarchical diffusion exists but not with consistency flow matching
-- Adaptive gating based on flow velocity is new
+**Honest assessment**: Hierarchical/cascaded diffusion is well-known. Porting it to consistency flow matching is incremental. The adaptive gating based on velocity confidence is a reasonable engineering contribution but not a paradigm shift.
 
-**Expected ablation impact**: -2% overall, biggest on hard tasks
+**What we need to show**: Hierarchical outperforms single-stage K=2, and the adaptive gate saves compute without hurting quality.
+
+**Status**: Not implemented. TBD via experiment.
 
 ### 4. Per-Dimension Selective Refinement
 
-**What**: After flow matching, compute per-dimension confidence from velocity magnitude. Re-run flow with K=4 only for uncertain dimensions.
+**Proposal**: Refine only uncertain action dimensions (high velocity = uncertain).
 
-**Why it's novel**:
-- AsyncVLA refines uniformly based on confidence
-- Nobody has done per-dimension selective refinement in flow matching
-- Low velocity = converged = confident; high velocity = still moving = uncertain
+**Honest assessment**: "Refine where uncertain" is standard in iterative refinement. Restricting the claim to "in flow-matching VLA" makes it trivially first by construction. This is an engineering contribution, not a research contribution.
 
-**Expected ablation impact**: -1% overall, biggest on very-hard tasks
+**What we need to show**: It helps on precision tasks (assembly, hand-insert) without hurting easy tasks.
 
----
-
-## Ablation Study Plan
-
-### Ablation 1: Foresight Contribution
-| Config | Description |
-|---|---|
-| Full | KAN-Flow-X with all components |
-| w/o foresight | Remove foresight module |
-| w/o disentangled | Single foresight head instead of dynamic/spatial/semantic |
-| MLP foresight | Replace KAN with MLP in foresight module |
-
-### Ablation 2: Task Routing Contribution
-| Config | Description |
-|---|---|
-| Full | 16+2 task-routed KAN experts |
-| No routing | Single shared GroupKAN |
-| FiLM routing | FiLM modulation instead of spline gating |
-| MoE routing | Standard MoE (separate expert networks) |
-
-### Ablation 3: Hierarchical Flow Contribution
-| Config | Description |
-|---|---|
-| Full | Hierarchical (coarse K=1 + fine K=2) |
-| Single-stage K=2 | KAN-We-Flow baseline |
-| Single-stage K=4 | Higher K without hierarchy |
-| No adaptive gate | Always run both stages |
-
-### Ablation 4: Refinement Contribution
-| Config | Description |
-|---|---|
-| Full | Per-dimension selective refinement |
-| Uniform refinement | Refine all dimensions |
-| No refinement | Skip refinement entirely |
+**Status**: Not implemented. TBD via experiment.
 
 ---
 
-## Paper Positioning
+## Overall Novelty Verdict
 
-### vs OFlow (SOTA, 85.6%)
-- OFlow: Heavy (3B params), DiT foresight (200M)
-- Ours: Lighter (163M), KAN foresight (2M)
-- **Advantage**: 18× lighter, task specialization
+This is a **systems-combination paper**: known components (DINOv2, SmolLM, KAN, RWKV, Consistency-FM, MoE routing) stitched together with minor architectural twists. That's a respectable engineering effort but not a paradigm contribution.
 
-### vs KAN-We-Flow (~82%)
-- KAN-We-Flow: Single-stage flow, no foresight, no task routing
-- Ours: Hierarchical flow, semantic foresight, task-routed experts
-- **Advantage**: +5-6% from foresight + routing + hierarchy
+**For a top venue (NeurIPS, ICML, ICLR)**: Would be rejected on novelty alone unless empirical results are strong (85%+ MT-50).
 
-### vs GP3 (83.1%)
-- GP3: Multi-view RGB, implicit 3D
-- Ours: Single-view DINOv2, KAN-based
-- **Advantage**: Works with single camera
+**For a workshop or robotics venue (CoRL, ICRA, RSS)**: Acceptable if ablation studies clearly isolate component contributions and the engineering is clean.
 
-### vs STAR (81.5%)
-- STAR: VQ-based skill quantization
-- Ours: Flow matching (continuous), KAN-based
-- **Advantage**: No codebook collapse
+**For a negative result / lessons learned paper**: Valuable if the ablations show which components help and which don't, even if overall performance is below baselines.
 
-## Key Differentiators
+---
 
-1. **First to combine KAN + semantic foresight** for robotics
-2. **First task-conditional spline gating** mechanism
-3. **First hierarchical consistency flow matching** with adaptive gating
-4. **First per-dimension selective refinement** in flow-matching VLA
-5. **100× lighter foresight** than OFlow with comparable gains
+## What Would Make This Publishable
+
+1. **Strong empirical results**: 80%+ on MT-50 would make the combination story compelling regardless of individual novelty
+2. **Clean ablation studies**: Showing exactly which components help and which hurt, with proper statistical rigor
+3. **Efficiency story**: If the model achieves competitive results with significantly fewer parameters/compute
+4. **Surprising findings**: If ablations reveal unexpected interactions (e.g., foresight hurts on simple tasks, routing helps more than expected)
+5. **Negative result value**: If the architecture doesn't work, documenting WHY it doesn't work is valuable for the community

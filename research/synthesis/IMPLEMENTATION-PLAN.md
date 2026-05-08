@@ -1,92 +1,105 @@
 # KAN-Flow-X: Implementation Plan
 
-## Phase 1: Core Architecture (2-3 days)
-- Fork RMKV repo, create kanflow_x/ package
-- Implement DINOv2 encoder wrapper (frozen, layers 8-11)
-- Implement vision projection (768 → 256)
-- Implement optional 3D point cloud encoder (DP3-style MLP)
-- Implement proprioception MLP
-- Implement cross-attention fusion (replace mean pooling)
-- Implement ForesightKAN with 3 disentangled heads
-- Implement TaskRoutedGroupKAN with 16+2 experts
-- Implement language-conditioned top-2 routing
-- Implement load balancing loss
+## Current State
 
-## Phase 2: Hierarchical Flow Matching (2-3 days)
-- Instantiate coarse RWKV-KAN UNet (base_dim=128)
-- Implement K=1 consistency flow matching
-- Instantiate fine RWKV-KAN UNet (base_dim=128)
-- Condition on coarse plan + original features
-- Implement K=2 consistency flow matching
-- Implement confidence-based adaptive gating
-- Implement per-dimension selective K=4 refinement
-- Implement two-term consistency loss with Pseudo-Huber
-- Implement EMA teacher update
+- **Codebase**: KAN-We-Flow implementation with RWKV-KAN UNet + single-stage CFM + SmolLM + SigLIP
+- **Checkpoint**: 264.7M total / 19.4M trainable
+- **Performance**: ~26-30% on MT-50 (solves 3 trivial tasks)
+- **Gap**: Below behavior cloning baselines (40-60%)
 
-## Phase 3: Multi-Task Training (1-2 days)
-- Implement MetaWorld dataset loader (MT-50, V2 rewards)
-- Implement per-dimension action normalization
-- Implement language description augmentation (100-200 per task)
-- Implement balanced task sampling
-- Implement two-phase training (foresight pre-training → end-to-end)
-- Implement PCGrad gradient surgery
-- Implement adaptive task sampling
-- Implement W&B logging
-- Implement evaluation protocol (IQM, bootstrap CIs)
+## Phase 1: Diagnose Current Performance (1-2 days)
 
-## Phase 4: Training & Iteration (3-5 days)
-- Smoke test on synthetic data
-- Train foresight module on MetaWorld demonstrations
-- Train full KAN-Flow-X on MT-50
-- Tune learning rate, batch size, loss weights
-- Hyperparameter search (experts, horizon, K, threshold)
+Before adding components, understand why the baseline is low:
+- [ ] Check data pipeline: are demonstrations loaded correctly?
+- [ ] Check action normalization: is it per-dimension?
+- [ ] Check training curves: is the model converging?
+- [ ] Check evaluation: is the success criterion correct?
+- [ ] Compare against a simple BC baseline (MLP policy) on same data
+- [ ] Identify: is the bottleneck data, architecture, or training?
 
-## Phase 5: Ablation Studies (2-3 days)
-- Foresight ablation (w/o, w/o disentangled, MLP)
-- Task routing ablation (no routing, FiLM, MoE, expert counts)
-- Hierarchical flow ablation (single-stage K=2, K=4, no gate)
-- Refinement ablation (uniform, none)
+## Phase 2: Implement Foresight (if Phase 1 suggests it would help)
 
-## Phase 6: Paper Writing (3-5 days)
-- Figures (architecture, ablations, heatmap, t-SNE, training curves)
-- Tables (main results, per-task, params, speed, 4 ablations)
-- Writing (all sections)
+**Hypothesis**: Predicting future visual states helps hard/very-hard tasks.
+**Test**: Add foresight module, compare against baseline on MT-10.
 
-## Files to Create
-```
-kanflow_x/
-├── __init__.py
-├── model/
-│   ├── kanflow_x.py          # Top-level model
-│   ├── observation_encoder.py
-│   ├── foresight.py
-│   ├── task_routed_groupkan.py
-│   ├── rwkv_kan_unet.py
-│   ├── rwkv.py
-│   ├── groupkan.py
-│   ├── flow_matching.py
-│   ├── hierarchical_flow.py
-│   ├── action_refiner.py
-│   ├── fusion.py
-│   └── reliability_heads.py
-├── data/
-│   ├── metaworld_dataset.py
-│   ├── balanced_sampler.py
-│   └── language_augment.py
-├── training/
-│   ├── trainer.py
-│   ├── pcgrad.py
-│   └── losses.py
-├── eval/
-│   ├── metaworld_eval.py
-│   └── metrics.py
-├── configs/
-│   ├── metaworld.yaml
-│   └── ablation_*.yaml
-└── scripts/
-    ├── train.py
-    ├── eval.py
-    └── smoke_test.py
-```
+- [ ] Implement DINOv2 feature extraction (frozen)
+- [ ] Implement lightweight foresight MLP/KAN
+- [ ] Train foresight on MetaWorld demonstrations
+- [ ] Evaluate: does foresight improve MT-10 success rate?
+- [ ] If yes → keep, integrate into full pipeline
+- [ ] If no → document why, move on
 
-## Timeline: ~2-3 weeks total
+## Phase 3: Implement Task Routing (if multi-task interference is observed)
+
+**Hypothesis**: Task-specific routing reduces interference between conflicting tasks.
+**Test**: Compare shared GroupKAN vs task-routed GroupKAN on MT-50.
+
+- [ ] Implement language-conditioned routing
+- [ ] Implement load balancing loss
+- [ ] Train on MT-50 with routing vs without
+- [ ] Evaluate: does routing help on medium/hard tasks?
+- [ ] Visualize: which tasks route to which experts?
+
+## Phase 4: Implement Hierarchical Flow (if single-stage flow is the bottleneck)
+
+**Hypothesis**: Hard tasks need multi-phase action generation.
+**Test**: Compare single-stage K=2 vs hierarchical K=1+K=2.
+
+- [ ] Implement coarse UNet (K=1)
+- [ ] Implement fine UNet (K=2) conditioned on coarse plan
+- [ ] Implement adaptive gate
+- [ ] Train and compare against single-stage baseline
+- [ ] Evaluate: does hierarchy help on hard tasks specifically?
+
+## Phase 5: Implement Refinement (if precision tasks remain hard)
+
+**Hypothesis**: Per-dimension refinement helps on contact-rich tasks.
+**Test**: Compare with/without refinement on assembly, hand-insert.
+
+- [ ] Implement per-dimension confidence from velocity
+- [ ] Implement selective K=4 refinement
+- [ ] Evaluate on precision tasks
+
+## Phase 6: Ablation Studies (2-3 days per ablation)
+
+Run each ablation with proper statistical rigor:
+- 3+ seeds per configuration
+- 50 eval episodes per task
+- Report IQM with 95% bootstrap CI
+- Per-task breakdown
+
+### Ablation Matrix
+| Config | Foresight | Routing | Hierarchy | Refinement |
+|---|---|---|---|---|
+| Baseline | ✗ | ✗ | ✗ | ✗ |
+| + Foresight | ✓ | ✗ | ✗ | ✗ |
+| + Routing | ✗ | ✓ | ✗ | ✗ |
+| + Hierarchy | ✗ | ✗ | ✓ | ✗ |
+| + Refinement | ✗ | ✗ | ✗ | ✓ |
+| Full | ✓ | ✓ | ✓ | ✓ |
+
+## Phase 7: Paper Writing (after experiments)
+
+- [ ] Write methods section (what was implemented)
+- [ ] Write results (actual numbers, no fabrication)
+- [ ] Write analysis (what worked, what didn't, why)
+- [ ] Create figures (architecture, ablations, per-task heatmap)
+- [ ] Verify ALL citations against actual papers
+- [ ] Get feedback before submission
+
+## Honest Timeline
+
+| Phase | Duration | Outcome |
+|---|---|---|
+| Phase 1 (Diagnose) | 1-2 days | Understand baseline |
+| Phase 2-5 (Components) | 1-2 weeks | Implement + test each |
+| Phase 6 (Ablations) | 1-2 weeks | Proper experiments |
+| Phase 7 (Paper) | 1 week | Writeup |
+| **Total** | **4-6 weeks** | **Honest paper with real results** |
+
+## Decision Points
+
+- After Phase 1: If baseline can't reach 50% MT-50, the architecture may need fundamental rethinking
+- After Phase 2-5: If no component clearly helps, this is a negative result (still publishable)
+- After Phase 6: If full model is below 70% MT-50, target workshop venues
+- If full model reaches 80%+ MT-50: target conference venues
