@@ -1,0 +1,22 @@
+# KANFlow-VLA Dependencies
+# Core
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+
+# Vision & Language encoders
+transformers>=4.36.0
+timm>=0.9.0
+
+# Data
+h5py>=3.8.0
+pyyaml>=6.0
+
+# Training
+wandb>=0.16.0
+
+# MetaWorld evaluation (install separately)
+# metaworld @ git+https://github.com/Farama-Foundation/Metaworld.git
+
+# Optional: for B-spline visualization
+# matplotlib>=3.7.0

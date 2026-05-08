@@ -1,0 +1,62 @@
+# ── Model weights ────────────────────────────────────────────────────────────
+*.pth
+*.pt
+*.bin
+*.safetensors
+*.ckpt
+*.onnx
+
+# ── Checkpoint and output directories ────────────────────────────────────────
+checkpoints/
+outputs/
+
+# ── Datasets and caches ───────────────────────────────────────────────────────
+data/
+datasets/
+cache/
+.cache/
+*.arrow
+*.parquet
+*.hdf5
+*.h5
+
+# ── Training artifacts ────────────────────────────────────────────────────────
+runs/
+wandb/
+logs/
+lightning_logs/
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# ── Editors / OS ──────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+.DS_Store
+
+# ── Unrelated subproject (Electron app + node_modules) ───────────────────────
+Proxima/node_modules/
+Proxima/
+
+# ── Large log files at repo root ─────────────────────────────────────────────
+eval_final.log
+eval_mt10.log
+eval_mt50.log
+eval_out.log
+test.log
+help_out.txt
+
+# ── W&B run artifacts ─────────────────────────────────────────────────────────
+wandb/
+
+# ── Internal scratch ─────────────────────────────────────────────────────────
+brain/

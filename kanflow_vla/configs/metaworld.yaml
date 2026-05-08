@@ -1,0 +1,133 @@
+# =============================================================================
+# KANFlow-VLA Configuration — MetaWorld MT-50
+# =============================================================================
+# Based on KAN-We-Flow (arXiv:2602.01115v2) implementation details §IV-C:
+#   - 10 expert demos per task
+#   - Image 84×84 → upscaled to 224×224 for SigLIP
+#   - Pred horizon=4, obs_length=2, action_pred_length=3
+#   - AdamW lr=1e-4, batch_size=128, 3000 epochs
+#   - EMA decay=0.95
+# =============================================================================
+
+seed: 42
+project_name: "kanflow-vla"
+run_name: null  # auto-generated if null
+
+# ── Model ────────────────────────────────────────────────────────────────────
+model:
+  action_dim: 4            # MetaWorld: 3D delta + gripper
+  horizon: 4               # Action prediction horizon
+  d_model: 256             # Shared embedding dimension
+  proprio_dim: 15          # MetaWorld: full 15D state
+  freeze_encoder: true     # Freeze VL encoder for parameter efficiency
+
+  # RWKV-KAN UNet (Action Decoder)
+  unet:
+    base_dim: 128          # Stage 1: 128, Stage 2: 256, Stage 3: 512
+    num_blocks_per_stage: 2
+    num_groups: 4          # GroupKAN groups (G=4 from paper)
+    num_knots: 8           # B-spline grid knots
+    spline_order: 3        # Cubic B-splines
+    drop_path: 0.0
+
+  # Vision Encoder
+  vision:
+    name: "siglip_base"
+    img_size: 224
+    patch_size: 16
+    d_vision: 768          # SigLIP-base hidden dim
+    pretrained: true
+    freeze: true
+
+  # Language Encoder
+  language:
+    name: "HuggingFaceTB/SmolLM-135M"
+    max_tokens: 32
+    d_lang: 576            # SmolLM hidden dim
+    freeze: true
+
+  # Cross-Attention Fusion
+  fusion:
+    num_layers: 2
+    num_heads: 4
+    dropout: 0.1
+
+  # Consistency Flow Matching
+  cfm:
+    num_segments: 2        # K=2 multi-segment CFM
+    ema_decay: 0.95
+    delta_t: 0.01
+    lambda_acr: 1.0        # ACR loss weight
+    alpha_consistency: 1.0 # Velocity consistency weight
+    inference_t: 0.0       # Pure-noise start for one-step inference
+
+# ── Data ─────────────────────────────────────────────────────────────────────
+data:
+  benchmark: "metaworld"
+  data_root: "/home/user/Desktop/vla_projects/tc-pruner/data"
+  hdf5_file: "mt50_multiview_full.hdf5"
+  task_set: "mt50"         # Full MT-50 suite
+  views:
+    - "image_corner2"      # Static third-person (exists in HDF5)
+    - "image_gripperPOV"   # Gripper first-person (exists in HDF5)
+  max_demos_per_task: 10   # Standard few-shot regime
+
+  img_size: 224            # Upscale from 84×84 for SigLIP
+  obs_length: 2            # Observation window
+  horizon: 4               # Prediction horizon
+  augment: true
+
+  num_workers: 8
+  pin_memory: true
+
+# ── Optimization ─────────────────────────────────────────────────────────────
+optim:
+  optimizer: "adamw"
+  base_lr: 1.0e-4
+  weight_decay: 0.05
+  betas: [0.9, 0.999]
+  eps: 1.0e-8
+  grad_clip: 1.0
+  mixed_precision: "bf16"  # bf16 | fp16 | fp32
+
+  schedule:
+    type: "cosine"
+    warmup_steps: 500
+    min_lr: 1.0e-6
+
+# ── Training ─────────────────────────────────────────────────────────────────
+training:
+  batch_size: 128
+  num_epochs: 3000         # From paper §IV-C
+  log_every: 50
+  eval_every: 100          # Epochs between evaluations
+  save_every: 500
+  checkpoint_dir: "./checkpoints/kanflow_vla"
+  resume_from: null
+
+# ── Loss ─────────────────────────────────────────────────────────────────────
+loss:
+  lambda_smooth: 0.0       # Action smoothness (optional)
+  lambda_vel_reg: 0.0      # Velocity magnitude reg (optional)
+  gripper_weight_mult: 3.0
+  # RCAR auxiliary losses — all 0.0 disables them for baseline policy training
+  lambda_mode: 0.0
+  lambda_failure: 0.0
+  lambda_progress: 0.0
+
+
+# ── Evaluation ───────────────────────────────────────────────────────────────
+evaluation:
+  num_rollouts: 10         # Per task
+  max_episode_steps: 500
+  num_seeds: 3             # Seeds: 0, 42, 100
+  seeds: [0, 42, 100]
+  deterministic: true
+  num_inference_steps: 1   # One-step decode (real-time)
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+logging:
+  backend: "wandb"         # wandb | tensorboard | none
+  log_actions: true
+  log_velocities: false
+  log_param_norms: true

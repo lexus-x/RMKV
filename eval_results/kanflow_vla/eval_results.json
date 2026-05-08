@@ -1,0 +1,41 @@
+{
+  "per_task": {
+    "reach": {
+      "sr1_mean": 0.0,
+      "sr1_std": 0.0,
+      "sr3_mean": 0.0,
+      "sr5_mean": 0.0
+    }
+  },
+  "per_tier": {
+    "easy": {
+      "sr1": 0.0,
+      "sr3": 0.0,
+      "sr5": 0.0,
+      "num_tasks": 1
+    },
+    "medium": {
+      "sr1": 0.0,
+      "sr3": 0.0,
+      "sr5": 0.0,
+      "num_tasks": 0
+    },
+    "hard": {
+      "sr1": 0.0,
+      "sr3": 0.0,
+      "sr5": 0.0,
+      "num_tasks": 0
+    },
+    "very_hard": {
+      "sr1": 0.0,
+      "sr3": 0.0,
+      "sr5": 0.0,
+      "num_tasks": 0
+    }
+  },
+  "overall": {
+    "sr1": 0.0,
+    "sr3": 0.0,
+    "num_tasks": 1
+  }
+}

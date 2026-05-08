@@ -1,0 +1,55 @@
+# ── Model weights ────────────────────────────────────────────────────────────
+*.pth
+*.pt
+*.bin
+*.safetensors
+*.ckpt
+*.onnx
+
+# ── Checkpoint and output directories ────────────────────────────────────────
+checkpoints/
+outputs/
+
+# ── Datasets and caches ───────────────────────────────────────────────────────
+data/
+datasets/
+cache/
+.cache/
+*.arrow
+*.parquet
+*.hdf5
+*.h5
+
+# ── Training artifacts ────────────────────────────────────────────────────────
+runs/
+wandb/
+logs/
+lightning_logs/
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# ── Editors / OS ──────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ── Large log files at repo root ─────────────────────────────────────────────
+*.log
+help_out.txt
+
+# ── Unrelated subproject ─────────────────────────────────────────────────────
+Proxima/node_modules/
+
+# ── Internal scratch ─────────────────────────────────────────────────────────
+brain/

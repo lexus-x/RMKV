@@ -1,0 +1,138 @@
+# =============================================================================
+# RCAR-VLA Configuration — MetaWorld RCAR Phase 1
+# =============================================================================
+# Extends metaworld.yaml with RCAR-specific settings.
+# Run: python -m kanflow_vla.train --config kanflow_vla/configs/rcar_metaworld.yaml
+# =============================================================================
+
+seed: 42
+project_name: "rcar-vla"
+run_name: null
+
+# ── Model (same as baseline) ─────────────────────────────────────────────────
+model:
+  action_dim: 4
+  horizon: 4
+  d_model: 256
+  proprio_dim: 15
+  freeze_encoder: true
+
+  unet:
+    base_dim: 128
+    num_blocks_per_stage: 2
+    num_groups: 4
+    num_knots: 8
+    spline_order: 3
+    drop_path: 0.0
+
+  vision:
+    name: "siglip_base"
+    img_size: 224
+    patch_size: 16
+    d_vision: 768
+    pretrained: true
+    freeze: true
+
+  language:
+    name: "HuggingFaceTB/SmolLM-135M"
+    max_tokens: 32
+    d_lang: 576
+    freeze: true
+
+  fusion:
+    num_layers: 2
+    num_heads: 4
+    dropout: 0.1
+
+  cfm:
+    num_segments: 2
+    ema_decay: 0.95
+    delta_t: 0.01
+    lambda_acr: 1.0
+    alpha_consistency: 1.0
+    inference_t: 0.0
+
+  # RCAR reliability heads
+  reliability:
+    d_hidden: 256
+    dropout: 0.1
+
+# ── Data ─────────────────────────────────────────────────────────────────────
+data:
+  benchmark: "metaworld"
+  data_root: "/home/user/Desktop/vla_projects/tc-pruner/data"
+  hdf5_file: "mt50_multiview_full.hdf5"
+  task_set: "mt50"
+  views:
+    - "image_corner2"
+    - "image_gripperPOV"
+  max_demos_per_task: 10
+
+  img_size: 224
+  obs_length: 2
+  horizon: 4
+  augment: true
+  num_workers: 8
+  pin_memory: true
+
+  # RCAR-specific
+  rcar_mode: true           # Enable instruction variant + label generation
+  sampler: "balanced"       # Keeps task balance without duplication
+  epoch_size: null          # null = full dataset length per epoch
+
+  # Variant sampling weights (must sum to 1.0)
+  # Heavily biased toward normal to prevent mode collapse early in training
+  rcar_variants:
+    normal: 0.70
+    counterfactual: 0.10
+    ambiguous: 0.10
+    impossible: 0.07
+    unsafe: 0.03
+
+# ── Optimization ─────────────────────────────────────────────────────────────
+optim:
+  optimizer: "adamw"
+  base_lr: 1.0e-4
+  weight_decay: 0.05
+  betas: [0.9, 0.999]
+  eps: 1.0e-8
+  grad_clip: 1.0
+  mixed_precision: "bf16"
+
+  schedule:
+    type: "cosine"
+    warmup_steps: 500
+    min_lr: 1.0e-6
+
+# ── Training ─────────────────────────────────────────────────────────────────
+training:
+  batch_size: 128
+  num_epochs: 3000
+  log_every: 50
+  eval_every: 100
+  save_every: 500
+  checkpoint_dir: "./checkpoints/rcar_vla"
+  resume_from: null
+
+# ── Loss ─────────────────────────────────────────────────────────────────────
+loss:
+  gripper_weight_mult: 3.0
+  lambda_smooth: 0.0
+  lambda_vel_reg: 0.0
+  # RCAR auxiliary losses — recommended starting weights from implementation plan
+  lambda_mode: 1.0
+  lambda_failure: 0.5
+  lambda_progress: 0.25
+
+# ── Evaluation ───────────────────────────────────────────────────────────────
+evaluation:
+  num_rollouts: 1           # Per task during training validation
+  max_episode_steps: 500
+  num_inference_steps: 1
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+logging:
+  backend: "wandb"
+  log_actions: true
+  log_velocities: false
+  log_param_norms: true
